@@ -1,0 +1,674 @@
+Disassembly Listing for Ansteuerung VSM
+Generated From:
+D:/Transfer/ownCloud Thomas/Thomas/Projekte/VSM/Ansteuerung_VSM_v1.1/dist/default/production/Ansteuerung_VSM_v1.1.production.elf
+04.02.2018 16:04:41
+
+---  D:/Transfer/ownCloud Thomas/Thomas/Projekte/VSM/Ansteuerung_VSM_v1.1/system.c  ---------------------
+1:                 #include <xc.h>
+2:                 #include "system.h"
+3:                 
+4:                 #include <stdint.h>          /* For uint32_t definition                       */
+5:                 #include <stdbool.h>         /* For true/false definition                     */
+6:                 
+7:                 // Select Internal FRC at POR
+8:                 //_FOSCSEL(FNOSC_FRC & IESO_OFF);
+9:                 // Enable Clock Switching and Configure POSC in XT mode
+10:                //_FOSC(FCKSM_CSECMD & OSCIOFNC_OFF & POSCMD_XT);
+11:                
+12:                void ConfigureOscillator(void) {
+000928  FA0000     LNK #0x0
+13:                    
+14:                    // input: 20 MHz crystal FIN
+15:                    // output: 100 MHz FPLLO
+16:                    
+17:                    // 50 MIPS
+18:                    CLKDIVbits.PLLPRE = 2;  // N1 = 4 = PLLPRE+2        5 MHz
+00092A  803A25     MOV CLKDIV, W5
+00092C  2FFE04     MOV #0xFFE0, W4
+00092E  628204     AND W5, W4, W4
+000930  A01004     BSET W4, #1
+000932  883A24     MOV W4, CLKDIV
+19:                    PLLFBDbits.PLLDIV = 38; // M = 40 = PLLDIV+2        200 MHz
+000934  803A35     MOV PLLFBD, W5
+000936  2FE004     MOV #0xFE00, W4
+000938  628284     AND W5, W4, W5
+00093A  200264     MOV #0x26, W4
+00093C  720205     IOR W4, W5, W4
+00093E  883A34     MOV W4, PLLFBD
+20:                    CLKDIVbits.PLLPOST = 0; // N2 = 2 = 2*(PLLPOST+1)   100 MHz
+000940  803A24     MOV CLKDIV, W4
+000942  A16004     BCLR W4, #6
+000944  A17004     BCLR W4, #7
+000946  883A24     MOV W4, CLKDIV
+21:                    
+22:                    // 40 MIPS
+23:                    CLKDIVbits.PLLPRE = 2;  // N1 = 4 = PLLPRE+2        5 MHz
+000948  803A25     MOV CLKDIV, W5
+00094A  2FFE04     MOV #0xFFE0, W4
+00094C  628204     AND W5, W4, W4
+00094E  A01004     BSET W4, #1
+000950  883A24     MOV W4, CLKDIV
+24:                    PLLFBDbits.PLLDIV = 30; // M = 30 = PLLDIV+2        160 MHz
+000952  803A35     MOV PLLFBD, W5
+000954  2FE004     MOV #0xFE00, W4
+000956  628204     AND W5, W4, W4
+000958  B301E4     IOR #0x1E, W4
+00095A  883A34     MOV W4, PLLFBD
+25:                    CLKDIVbits.PLLPOST = 0; // N2 = 2 = 2*(PLLPOST+1)   80 MHz
+00095C  803A24     MOV CLKDIV, W4
+00095E  A16004     BCLR W4, #6
+000960  A17004     BCLR W4, #7
+000962  883A24     MOV W4, CLKDIV
+26:                    CLKDIVbits.DOZE = 0;
+000964  803A24     MOV CLKDIV, W4
+000966  A1C004     BCLR W4, #12
+000968  A1D004     BCLR W4, #13
+00096A  A1E004     BCLR W4, #14
+00096C  883A24     MOV W4, CLKDIV
+27:                    CLKDIVbits.DOZEN = 0;
+00096E  A96745     BCLR 0x745, #3
+28:                    
+29:                    // Initiate Clock Switch to Primary Oscillator with PLL (NOSC=0b011)
+30:                    __builtin_write_OSCCONH(0x03);
+000970  200036     MOV #0x3, W6
+000972  200784     MOV #0x78, W4
+000974  2009A5     MOV #0x9A, W5
+000976  207437     MOV #0x743, W7
+000978  784B84     MOV.B W4, [W7]
+00097A  784B85     MOV.B W5, [W7]
+00097C  784B86     MOV.B W6, [W7]
+31:                    __builtin_write_OSCCONL(OSCCON | 0x01);
+00097E  803A14     MOV OSCCON, W4
+000980  780304     MOV W4, W6
+000982  A00006     BSET W6, #0
+000984  200464     MOV #0x46, W4
+000986  200575     MOV #0x57, W5
+000988  207427     MOV #0x742, W7
+00098A  784B84     MOV.B W4, [W7]
+00098C  784B85     MOV.B W5, [W7]
+00098E  784B86     MOV.B W6, [W7]
+32:                    // Wait for Clock switch to occur
+33:                    while (OSCCONbits.COSC!= 0b011);
+000990  000000     NOP
+000992  803A15     MOV OSCCON, W5
+000994  270004     MOV #0x7000, W4
+000996  628284     AND W5, W4, W5
+000998  230004     MOV #0x3000, W4
+00099A  528F84     SUB W5, W4, [W15]
+00099C  3AFFFA     BRA NZ, 0x992
+34:                    // Wait for PLL to lock
+35:                    while (OSCCONbits.LOCK!= 1);
+00099E  000000     NOP
+0009A0  803A15     MOV OSCCON, W5
+0009A2  200204     MOV #0x20, W4
+0009A4  628204     AND W5, W4, W4
+0009A6  520FE0     SUB W4, #0x0, [W15]
+0009A8  32FFFB     BRA Z, 0x9A0
+36:                
+37:                 /*   // Initiate Clock Switch to Primary Oscillator with PLL (NOSC=0b011)
+38:                    __builtin_write_OSCCONH(0x03);          // Set OSCCONH for clock switch
+39:                    __builtin_write_OSCCONL(OSCCON | 0x01); // Start clock switching
+40:                    // Wait for Clock switch to occur
+41:                    while (OSCCONbits.COSC!= 0b011);
+42:                    // Wait for PLL to lock
+43:                    while (OSCCONbits.LOCK!= 1);*/
+44:                }
+0009AA  FA8000     ULNK
+0009AC  060000     RETURN
+45:                #if 0
+46:                        /* Disable Watch Dog Timer */
+47:                        RCONbits.SWDTEN = 0;
+48:                
+49:                        /* When clock switch occurs switch to Pri Osc controlled by FPR<4:0> */
+50:                        __builtin_write_OSCCONH(0x03);  /* Set OSCCONH for clock switch */
+51:                        __builtin_write_OSCCONL(0x01);  /* Start clock switching */
+52:                        while(OSCCONbits.COSC != 0b011);
+53:                
+54:                        /* Wait for Clock switch to occur */
+55:                        /* Wait for PLL to lock, if PLL is used */
+56:                        /* while(OSCCONbits.LOCK != 1); */
+57:                #endif
+58:                
+59:                //}
+---  D:/Transfer/ownCloud Thomas/Thomas/Projekte/VSM/Ansteuerung_VSM_v1.1/main.c  -----------------------
+1:                 /* 
+2:                  * File:   main.c
+3:                  * Author: Thomas
+4:                  *
+5:                  * Created on 23. Juli 2017, 20:20
+6:                  */
+7:                 
+8:                 #include <xc.h>
+9:                 #include <stdio.h>
+10:                #include <stdlib.h>
+11:                #include <stdint.h>        /* For uint8_t definition */
+12:                #include <stdbool.h>       /* For true/false definition */
+13:                
+14:                #include "init.h"
+15:                #include "math.h"
+16:                #include <p33EP512MC506.h>
+17:                #include <libpic30.h>
+18:                #include <PPS.h>
+19:                /*
+20:                 * 
+21:                 */
+22:                
+23:                #define PPSIn(fn,pin)    iPPSInput(IN_FN_PPS##fn,IN_PIN_PPS##pin)
+24:                #define PPSOut(fn,pin)    iPPSOutput(OUT_PIN_PPS##pin,OUT_FN_PPS##fn)
+25:                
+26:                uint16_t counter = 0;
+27:                double DC = 0;
+28:                int u_k1 = 0;
+29:                
+30:                void __attribute__((__interrupt__, __auto_psv__)) _T1Interrupt(void);
+31:                void __attribute__((__interrupt__,no_auto_psv)) _PWM1Interrupt(void);
+32:                void __attribute__((__interrupt__, no_auto_psv)) _AD1Interrupt(void);
+33:                
+34:                    /* This code example demonstrates a method to configure the ECAN module to transmit
+35:                    Standard ID CAN messages. */
+36:                    /* Include fuse configuration code here. Optionally the fuse configuration can be specified
+37:                    via MPLAB IDE Menu operations. */
+38:                    //FUSE_CONFIGURATION_MACROS_COME_HERE
+39:                    #define NUM_OF_ECAN_BUFFERS 32
+40:                    /* This is the ECAN message buffer declaration. Note the buffer alignment. */
+41:                    unsigned int ecan1MsgBuf[NUM_OF_ECAN_BUFFERS][8]
+42:                    __attribute__((aligned(NUM_OF_ECAN_BUFFERS * 16)));
+43:                    
+44:                int main(int argc, char** argv) {
+0007A0  FA0004     LNK #0x4
+0007A2  780F00     MOV W0, [W14]
+0007A4  980711     MOV W1, [W14+2]
+45:                
+46:                    
+47:                    ConfigureOscillator();
+0007A6  0700C0     RCALL ConfigureOscillator
+48:                    // GPIO
+49:                      TRISBbits.TRISB6 = 0;   // output
+0007A8  A9CE10     BCLR TRISB, #6
+50:                      TRISBbits.TRISB7 = 1;   // input
+0007AA  A8EE10     BSET TRISB, #7
+51:                      TRISD = 0x0000;   // outputs
+0007AC  EB0200     CLR W4
+0007AE  887184     MOV W4, TRISD
+52:                      TRISA = 0xFFFF;   // inputs
+0007B0  EB8200     SETM W4
+0007B2  887004     MOV W4, TRISA
+53:                      TRISAbits.TRISA10 = 0;
+0007B4  A94E01     BCLR 0xE01, #2
+54:                     
+55:                        LATDbits.LATD5 = 0;
+0007B6  A9AE34     BCLR LATD, #5
+56:                
+57:                     while(1) {
+58:                
+59:                        LATDbits.LATD5 = 0;
+0007B8  A9AE34     BCLR LATD, #5
+60:                        LATDbits.LATD5 = 1;
+0007BA  A8AE34     BSET LATD, #5
+61:                        LATDbits.LATD5 = 0;
+0007BC  A9AE34     BCLR LATD, #5
+62:                        LATDbits.LATD5 = 1;
+0007BE  A8AE34     BSET LATD, #5
+63:                        LATDbits.LATD5 = 0;
+0007C0  A9AE34     BCLR LATD, #5
+64:                        LATDbits.LATD5 = 1;
+0007C2  A8AE34     BSET LATD, #5
+65:                     }
+0007C4  37FFF9     BRA 0x7B8
+66:                
+67:                    unsigned long address;
+68:                    /* Place code to set device speed here. For this example the device speed should be set at
+69:                    40 MHz (i.e., the device is operating at 40 MIPS). */
+70:                    //ConfigureDeviceClockFor40MIPS();
+71:                    /* The dsPIC33E device features I/O remap. This I/O remap configuration for the ECAN
+72:                    module can be performed here. */
+73:                    //SetIORemapForECANModule();
+74:                    PPSIn (_C1RX,_RP37);
+75:                    PPSOut (_C1TX,_RP38); 
+76:                    /* Set up the ECAN1 module to operate at 250 kbps. The ECAN module should be first placed
+77:                    in configuration mode. */
+78:                    C1CTRL1bits.REQOP = 4;
+79:                    while(C1CTRL1bits.OPMODE != 4);
+80:                    C1CTRL1bits.WIN = 0;
+81:                    /* Set up the CAN module for 250kbps speed with 10 Tq per bit. */
+82:                    C1CFG1 = 0x47; // BRP = 8 SJW = 2 Tq
+83:                    C1CFG2 = 0x2D2;
+84:                    C1FCTRL = 0xC01F; // No FIFO, 32 Buffers
+85:                    /* Assign 32x8word Message Buffers for ECAN1 in device RAM. This example uses DMA0 for TX.
+86:                    Refer to 21.8.1 ?DMA Operation for Transmitting Data? for details on DMA channel
+87:                    configuration for ECAN transmit. */
+88:                    DMA0CONbits.SIZE = 0x0;
+89:                    DMA0CONbits.DIR = 0x1;
+90:                    DMA0CONbits.AMODE = 0x2;
+91:                    DMA0CONbits.MODE = 0x0;
+92:                    DMA0REQ = 70;
+93:                    DMA0CNT = 7;
+94:                    DMA0PAD = (volatile unsigned int)&C1TXD;
+95:                    DMA0STAL = (unsigned int) &ecan1MsgBuf;
+96:                    DMA0STAH = (unsigned int) &ecan1MsgBuf;
+97:                    DMA0CONbits.CHEN = 0x1;
+98:                      
+99:                    /* Configure Message Buffer 0 for Transmission and assign priority */
+100:                   C1TR01CONbits.TXEN0 = 0x1;
+101:                   C1TR01CONbits.TX0PRI = 0x3;
+102:                   
+103:                   /* At this point the ECAN1 module is ready to transmit a message. Place the ECAN module in
+104:                   Normal mode. */
+105:                   C1CTRL1bits.REQOP = 0;
+106:                   while(C1CTRL1bits.OPMODE != 0);
+107:                   /* Write to message buffer 0 */
+108:                   /* CiTRBnSID = 0bxxx1 0010 0011 1100
+109:                   IDE = 0b0
+110:                   SRR = 0b0
+111:                   SID<10:0>= 0b100 1000 1111 */
+112:                   
+113:                   while(1) {
+114:                       ecan1MsgBuf[0][0] = 0x123C;
+115:                       /* CiTRBnEID = 0bxxxx 0000 0000 0000
+116:                       EID<17:6> = 0b0000 0000 0000 */
+117:                       ecan1MsgBuf[0][1] = 0x0000;
+118:                       /* CiTRBnDLC = 0b0000 0000 xxx0 1111
+119:                       EID<17:6> = 0b000000
+120:                       RTR = 0b0
+121:                       RB1 = 0b0
+122:                       RB0 = 0b0
+123:                       DLC = 0b1111 */
+124:                       ecan1MsgBuf[0][2] = 0x0008;
+125:                       /* Write message data bytes */
+126:                       ecan1MsgBuf[0][3] = 0xabcd;
+127:                       ecan1MsgBuf[0][4] = 0xabcd;
+128:                       ecan1MsgBuf[0][5] = 0xabcd;
+129:                       ecan1MsgBuf[0][6] = 0xabcd;
+130:                       /* Request message buffer 0 transmission */
+131:                       C1TR01CONbits.TXREQ0 = 0x1;
+132:                       /* The following shows an example of how the TXREQ bit can be polled to check if transmission
+133:                       is complete. */
+134:                       while(C1TR01CONbits.TXREQ0 == 1);
+135:                       LATDbits.LATD5 = 1;
+136:                       /* Message was placed successfully on the bus */
+137:                       __delay_ms(100);
+138:                       
+139:                   }
+140:               
+141:                /*     while(1) {
+142:               
+143:                       LATDbits.LATD5 = 0;
+144:                       LATDbits.LATD5 = 1;
+145:                       LATDbits.LATD5 = 0;
+146:                       LATDbits.LATD5 = 1;
+147:                       LATDbits.LATD5 = 0;
+148:                       LATDbits.LATD5 = 1;
+149:                
+150:                       LATB = 0xFFFF;
+151:                       LATAbits.LATA10 = 0;
+152:                       LATAbits.LATA10 = 1;
+153:                       LATDbits.LATD5 = 1;
+154:                       LATB = 0x0000;
+155:                       
+156:                       __delay_ms(20);
+157:                       LATAbits.LATA10 = 0;
+158:                       LATDbits.LATD5 = 0;
+159:                       LATB = 0x0000;
+160:                       
+161:                       __delay_ms(40);
+162:               
+163:                     }*/
+164:               
+165:               // High-Speed PWM
+166:               
+167:                   //    PORTB = 0x0000; // clear the outputs
+168:               
+169:               /* Set PWM Period on Primary Time Base */
+170:                     // Complementary PWM Mode ? Independent Duty Cycle and Phase, Fixed Primary Period, Edge-Aligned
+171:                   
+172:                   /* Set PWM Periods on PHASEx Registers */
+173:                   PHASE1 = 10000;
+174:                   PHASE2 = 10000;
+175:                   PHASE3 = 10000;
+176:                
+177:                //   PHASE3 = 800;
+178:                   /* Set Duty Cycles */
+179:                   PDC1 = 200;
+180:                   PDC2 = PDC1;
+181:                   PDC3 = PDC1;
+182:                
+183:                //   PDC3 = 200;
+184:                   /* Set PWM Mode to Complementary */
+185:                   IOCON1 = 0xC000;
+186:                   IOCON2 = 0xC002;
+187:                   IOCON3 = 0xC000;
+188:                   /* Set Dead Time Values */
+189:                   DTR1 = DTR2 = 20;
+190:                   ALTDTR1 = ALTDTR2 = 20;
+191:                   ALTDTR3 = 0;
+192:                   PHASE3 = 10000;
+193:                
+194:                //   PHASE3 = 800;
+195:                   /* Set Duty Cycles */
+196:                   PDC1 = 200;
+197:                   PDC2 = PDC1;
+198:                   PDC3 = PDC1;
+199:                
+200:                //   PDC3 = 200;
+201:                   /* Set PWM Mode to Complementary */
+202:                   IOCON1 = 0xC000;
+203:                   IOCON2 = 0xC002;
+204:                   IOCON3 = 0xC000;
+205:                   
+206:               
+207:               
+208:                   /* Set Primary Time Base, Edge-Aligned Mode and Independent Duty Cycles */
+209:                //   PWMCON1 = PWMCON2 = 0x0000;
+210:                   /* Set Independent Time Bases, Center-Aligned mode and Independent Duty Cycles */
+211:                   PWMCON1 = 0x0604;
+212:                   PWMCON2 = 0x0204;
+213:                   PWMCON3 = 0x0204;
+214:                   /* Configure Faults */
+215:                   FCLCON1 = FCLCON2 = 0x0003;
+216:                   /* 1:1 Prescaler */
+217:                   PTCON2 = 0x0000;
+218:                   PTCON2bits.PCLKDIV = 2; //4;     // Prescaler: 16
+219:                   /*Interrupts Config*/
+220:                  // TRIG1 = 0;
+221:                  // TRGCON1 = 0;
+222:                 //  TRGCON1bits.TRGSTRT = 4;         //         This and the next 3 lines are highlighted by the error message
+223:                   
+224:                   IFS5bits.PWM1IF = 0;
+225:                   IPC23bits.PWM1IP = 4;
+226:                   IEC5bits.PWM1IE = 1;
+227:                   
+228:                   /* Independent PWM ADC Triggering */
+229:                   TRIG1 = 0; /* Point at which the ADC module is to be
+230:                   triggered by primary PWM */
+231:                   TRGCON1bits.TRGDIV = 0; /* Trigger output divider set to trigger ADC on
+232:                   every trigger match event */
+233:                   TRGCON1bits.TRGSTRT = 0; /* First ADC trigger event occurs after four
+234:                   trigger match events */
+235:                   PWMCON1bits.TRGIEN = 1; /* Trigger event generates an interrupt request */
+236:                   //while (PWMCON1bits.TRGSTAT == 1); /* Wait for ADC interrupt status change */
+237:                   
+238:                   /* Intialize the ADC */
+239:               	
+240:                   AD1CON1bits.SSRCG = 1;      // normal PWM trigger
+241:                   AD1CON1bits.SSRC = 0;       // PWM Generator 1 primary trigger compare ends sampling and starts conversion
+242:                   
+243:                   AD1CON1bits.AD12B = 1;      // 12-bit, 1-channel ADC operation
+244:                   AD1CON1bits.ASAM = 1;       // Sampling begins immediately after last conversion; SAMP bit is auto-set
+245:                   AD1CON2bits.VCFG = 0;       // AVdd - AVss
+246:                   AD1CON3bits.ADCS = 2;       // 3 ? TCY = TAD
+247:                   AD1CHS0bits.CH0SA = 0;      // Channel 0 positive input is AN0
+248:                   AD1CHS0bits.CH0NA = 0;      // Channel 0 negative input is VREFL
+249:                   AD1CON2bits.CHPS = 0;       // Converts CH0
+250:                   
+251:                   IFS0bits.AD1IF = 0;         // clear Interrupt Flag
+252:                   IPC3bits.AD1IP = 7;         // Interrupt is Priority 7
+253:                   IEC0bits.AD1IE = 1;         // enable Interrupt
+254:                   
+255:               	
+256:               	AD1CON1bits.ADON = 1;             // Start the ADC module //	
+257:                   
+258:                   /* Enable PWM Module */
+259:                   PTCON = 0x8000;
+260:               
+261:                   T1CON = 0;            // Clear Timer 1 configuration
+262:                   T1CONbits.TCKPS = 1;  // Set timer 1 prescaler (0=1:1, 1=1:8, 2=1:64, 3=1:256)
+263:                   PR1 = 20000;          // Set Timer 1 period (max value is 65535)
+264:                   _T1IP = 1;            // Set Timer 1 interrupt priority
+265:                   _T1IF = 0;            // Clear Timer 1 interrupt flag
+266:                   _T1IE = 1;            // Enable Timer 1 interrupt
+267:                   T1CONbits.TON = 1;    // Turn on Timer 1
+268:               
+269:                   INTCON2bits.GIE = 1;
+270:               
+271:                     while(1) {
+272:               
+273:                       LATB = 0xFFFF;
+274:                       LATB = 0x0000;
+275:                       __delay_ms(200);
+276:                       LATB = 0x0000;
+277:                       __delay_ms(400);
+278:               
+279:                     }
+280:               
+281:                   return (EXIT_SUCCESS);
+282:               }
+283:               
+284:               void __attribute__((__interrupt__, __auto_psv__)) _T1Interrupt(void) {
+0007C6  781F80     MOV W0, [W15++]
+0007C8  BE9F84     MOV.D W4, [W15++]
+0007CA  781F86     MOV W6, [W15++]
+0007CC  F80032     PUSH DSRPAG
+0007CE  200010     MOV #0x1, W0
+0007D0  880190     MOV W0, DSRPAG
+0007D2  000000     NOP
+0007D4  FA0000     LNK #0x0
+285:                   // Clear Timer 1 interrupt flag
+286:                   _T1IF = 0;
+0007D6  A96800     BCLR IFS0, #3
+287:               
+288:                   // Toggle LED on RD1
+289:                   _LATB6 = 1 - _LATB6;
+0007D8  8070A4     MOV LATB, W4
+0007DA  DE2246     LSR W4, #6, W4
+0007DC  624261     AND.B W4, #0x1, W4
+0007DE  B3C015     MOV.B #0x1, W5
+0007E0  52C204     SUB.B W5, W4, W4
+0007E2  624261     AND.B W4, #0x1, W4
+0007E4  FB8204     ZE W4, W4
+0007E6  620261     AND W4, #0x1, W4
+0007E8  DD2246     SL W4, #6, W4
+0007EA  8070A6     MOV LATB, W6
+0007EC  2FFBF5     MOV #0xFFBF, W5
+0007EE  630285     AND W6, W5, W5
+0007F0  720205     IOR W4, W5, W4
+0007F2  8870A4     MOV W4, LATB
+290:               }
+0007F4  FA8000     ULNK
+0007F6  F90032     POP DSRPAG
+0007F8  78034F     MOV [--W15], W6
+0007FA  BE024F     MOV.D [--W15], W4
+0007FC  78004F     MOV [--W15], W0
+0007FE  064000     RETFIE
+291:               
+292:               void __attribute__((__interrupt__,no_auto_psv)) _PWM1Interrupt() {
+000800  F80036     PUSH RCOUNT
+000802  BE9F80     MOV.D W0, [W15++]
+000804  BE9F82     MOV.D W2, [W15++]
+000806  BE9F84     MOV.D W4, [W15++]
+000808  BE9F86     MOV.D W6, [W15++]
+00080A  FA0000     LNK #0x0
+293:                   // Clear Timer 1 interrupt flag
+294:                   IFS5bits.PWM1IF = 0; //Clear Flag for next interrupt
+00080C  A9C80B     BCLR 0x80B, #6
+295:                   
+296:                   if (counter < 10000) {
+00080E  809005     MOV counter, W5
+000810  2270F4     MOV #0x270F, W4
+000812  528F84     SUB W5, W4, [W15]
+000814  3E0004     BRA GTU, 0x81E
+297:                       counter++;
+000816  809004     MOV counter, W4
+000818  E80204     INC W4, W4
+00081A  889004     MOV W4, counter
+00081C  370002     BRA 0x822
+298:                   } else {
+299:                       counter = 0;
+00081E  EB0200     CLR W4
+000820  889004     MOV W4, counter
+300:                   }
+301:                   // Toggle LED on RD1
+302:                   //_LATB6 = 1 - _LATB6;
+303:                   DC = 5000+4900*sin(2*3.1415*(double)counter/10000);
+000822  809004     MOV counter, W4
+000824  200005     MOV #0x0, W5
+000826  BE0004     MOV.D W4, W0
+000828  07FE1A     RCALL ___floatunsisf
+00082A  BE0200     MOV.D W0, W4
+00082C  20E562     MOV #0xE56, W2
+00082E  240C93     MOV #0x40C9, W3
+000830  BE0004     MOV.D W4, W0
+000832  07FE6A     RCALL ___mulsf3
+000834  BE0200     MOV.D W0, W4
+000836  240002     MOV #0x4000, W2
+000838  2461C3     MOV #0x461C, W3
+00083A  BE0004     MOV.D W4, W0
+00083C  07FDAA     RCALL ___divsf3
+00083E  BE0200     MOV.D W0, W4
+000840  BE0004     MOV.D W4, W0
+000842  07FE96     RCALL _sinf
+000844  BE0200     MOV.D W0, W4
+000846  220002     MOV #0x2000, W2
+000848  245993     MOV #0x4599, W3
+00084A  BE0004     MOV.D W4, W0
+00084C  07FE5D     RCALL ___mulsf3
+00084E  BE0200     MOV.D W0, W4
+000850  240002     MOV #0x4000, W2
+000852  2459C3     MOV #0x459C, W3
+000854  BE0004     MOV.D W4, W0
+000856  07FD40     RCALL ___addsf3
+000858  BE0200     MOV.D W0, W4
+00085A  889014     MOV W4, DC
+00085C  889025     MOV W5, 0x1204
+304:                   DC = 7500;
+00085E  260004     MOV #0x6000, W4
+000860  245EA5     MOV #0x45EA, W5
+000862  889014     MOV W4, DC
+000864  889025     MOV W5, 0x1204
+305:                 //  PDC1 = DC;//200;//counter;//
+306:                 //  PDC2 = PDC1 = DC;
+307:               }
+000866  FA8000     ULNK
+000868  BE034F     MOV.D [--W15], W6
+00086A  BE024F     MOV.D [--W15], W4
+00086C  BE014F     MOV.D [--W15], W2
+00086E  BE004F     MOV.D [--W15], W0
+000870  F90036     POP RCOUNT
+000872  064000     RETFIE
+308:               
+309:               // current control
+310:               void __attribute__((__interrupt__, no_auto_psv)) _AD1Interrupt() {
+000874  F80036     PUSH RCOUNT
+000876  BE9F80     MOV.D W0, [W15++]
+000878  BE9F82     MOV.D W2, [W15++]
+00087A  BE9F84     MOV.D W4, [W15++]
+00087C  BE9F86     MOV.D W6, [W15++]
+00087E  BE9F88     MOV.D W8, [W15++]
+000880  BE9F8A     MOV.D W10, [W15++]
+000882  FA0012     LNK #0x12
+311:               	int channel0Result;
+312:               	
+313:               	IFS0bits.AD1IF = 0;              // Clear ADC Interrupt Flag 
+000884  A9A801     BCLR 0x801, #5
+314:               //	ADSTATbits.P0RDY = 0;           // Clear the ADSTAT bits 
+315:               	channel0Result = ADC1BUF0;       // Get the conversion result 
+000886  801804     MOV ADC1BUF0, W4
+000888  780F04     MOV W4, [W14]
+316:               
+317:               	// Update the Duty cycle with value read from AN0 
+318:               	//   PDC value will be such that 7F >= PDC1 >= 3F0 
+319:               	//_LATB6 = 1 - _LATB6;
+320:                   // ADC von 0 bis 4096
+321:                   // i_ist: 0,1 Ohm -> 0,5 A -> G=10X -> 0,5V -> 2,5V - 0,5V (2V -> 2500) bis 2,5V + 0,5V (3V -> 3700) 2,5V -> 3100
+322:               	
+323:                   // VSM Vollbrücke Platine:
+324:                   // i_ist: 0,05 Ohm * 1A * 10 -> 0,500 V -> 3V -> (Vcc = 3,3V) 3258
+325:                   // i_ist: 0,05 Ohm * 2A * 10 -> 1,0 V
+326:                   //PDC1 = PDC2 = channel0Result; //(channel0Result >= 0x03F0) ? 0x03F0 : ((channel0Result <= 0x007F) ? 0x007F : channel0Result);
+327:                   double Kp = 0.1;
+00088A  2CCCD4     MOV #0xCCCD, W4
+00088C  23DCC5     MOV #0x3DCC, W5
+00088E  980714     MOV W4, [W14+2]
+000890  980725     MOV W5, [W14+4]
+328:                   double Ki = 0.1;
+000892  2CCCD4     MOV #0xCCCD, W4
+000894  23DCC5     MOV #0x3DCC, W5
+000896  980734     MOV W4, [W14+6]
+000898  980745     MOV W5, [W14+8]
+329:                   int isoll = 2500;//1860; //2500; //3100+600*sin(2*3.1415*(double)counter/10000); // 0,5 A -> 1000
+00089A  209C44     MOV #0x9C4, W4
+00089C  980754     MOV W4, [W14+10]
+330:                  // int isoll = 2100;
+331:                   int iist = channel0Result;  // 0,5 A -> 0,05 V  -> ca. 60
+00089E  78021E     MOV [W14], W4
+0008A0  980764     MOV W4, [W14+12]
+332:                   int u_k0 = isoll - iist;
+0008A2  9002DE     MOV [W14+10], W5
+0008A4  90026E     MOV [W14+12], W4
+0008A6  528204     SUB W5, W4, W4
+0008A8  980774     MOV W4, [W14+14]
+333:                   int dc = PDC1 + (Kp + Ki)* (double)u_k0 - Kp*u_k1;
+0008AA  806134     MOV PDC1, W4
+0008AC  200005     MOV #0x0, W5
+0008AE  BE0004     MOV.D W4, W0
+0008B0  07FDD6     RCALL ___floatunsisf
+0008B2  BE0400     MOV.D W0, W8
+0008B4  90013E     MOV [W14+6], W2
+0008B6  9001CE     MOV [W14+8], W3
+0008B8  90001E     MOV [W14+2], W0
+0008BA  9000AE     MOV [W14+4], W1
+0008BC  07FD0D     RCALL ___addsf3
+0008BE  BE0200     MOV.D W0, W4
+0008C0  BE0504     MOV.D W4, W10
+0008C2  90027E     MOV [W14+14], W4
+0008C4  DEA2CF     ASR W4, #15, W5
+0008C6  BE0004     MOV.D W4, W0
+0008C8  07FDC7     RCALL ___floatsisf
+0008CA  BE0200     MOV.D W0, W4
+0008CC  BE0104     MOV.D W4, W2
+0008CE  BE000A     MOV.D W10, W0
+0008D0  07FE1B     RCALL ___mulsf3
+0008D2  BE0200     MOV.D W0, W4
+0008D4  BE0104     MOV.D W4, W2
+0008D6  BE0008     MOV.D W8, W0
+0008D8  07FCFF     RCALL ___addsf3
+0008DA  BE0200     MOV.D W0, W4
+0008DC  BE0404     MOV.D W4, W8
+0008DE  809034     MOV u_k1, W4
+0008E0  DEA2CF     ASR W4, #15, W5
+0008E2  BE0004     MOV.D W4, W0
+0008E4  07FDB9     RCALL ___floatsisf
+0008E6  BE0200     MOV.D W0, W4
+0008E8  90011E     MOV [W14+2], W2
+0008EA  9001AE     MOV [W14+4], W3
+0008EC  BE0004     MOV.D W4, W0
+0008EE  07FE0C     RCALL ___mulsf3
+0008F0  BE0200     MOV.D W0, W4
+0008F2  BE0104     MOV.D W4, W2
+0008F4  BE0008     MOV.D W8, W0
+0008F6  07FCEF     RCALL ___subsf3
+0008F8  BE0200     MOV.D W0, W4
+0008FA  BE0004     MOV.D W4, W0
+0008FC  07FD8C     RCALL ___fixsfsi
+0008FE  BE0200     MOV.D W0, W4
+000900  980F04     MOV W4, [W14+16]
+334:                   u_k1 = u_k0;
+000902  90027E     MOV [W14+14], W4
+000904  889034     MOV W4, u_k1
+335:                   PDC1 = PDC2 = dc;
+000906  900A0E     MOV [W14+16], W4
+000908  886234     MOV W4, PDC2
+00090A  806234     MOV PDC2, W4
+00090C  886134     MOV W4, PDC1
+336:                   //PDC3 = isoll;
+337:               }
+00090E  FA8000     ULNK
+000910  BE054F     MOV.D [--W15], W10
+000912  BE044F     MOV.D [--W15], W8
+000914  BE034F     MOV.D [--W15], W6
+000916  BE024F     MOV.D [--W15], W4
+000918  BE014F     MOV.D [--W15], W2
+00091A  BE004F     MOV.D [--W15], W0
+00091C  F90036     POP RCOUNT
+00091E  064000     RETFIE
+338:               
+339:               uint16_t controller(void) {
+000920  FA0000     LNK #0x0
+340:                   /*Kp = 1;
+341:                   Ki = 1;
+342:                   isoll = 5000+1000*sin(2*3.1415*(double)counter/2000);
+343:                   iist = channel0Result
+344:                   dc = PDC1 + (Kp + Ki)*/
+345:               }
+000922  780004     MOV W4, W0
+000924  FA8000     ULNK
+000926  060000     RETURN
